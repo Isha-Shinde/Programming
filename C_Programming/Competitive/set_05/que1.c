@@ -1,0 +1,26 @@
+//Write a program which accept number from user and print that number of $ & * on screen.
+
+#include<stdio.h>
+
+int Pattern(int iNO)
+{
+    int iCnt = 0;
+    
+    for(iCnt = 1; iCnt <= iNO; iCnt++)
+    {
+        printf("$\t*\t");
+    }
+        
+}
+
+int main()
+{
+    int iValue = 0;
+
+    printf("Enter number :");
+    scanf("%d",&iValue);
+
+    Pattern(iValue);
+
+    return 0;
+}
