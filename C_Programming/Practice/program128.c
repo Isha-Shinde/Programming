@@ -1,0 +1,50 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<stdbool.h>
+
+bool Linearsearch(int Arr[],int iSize)
+{
+    int iCnt = 0;
+
+    for(iCnt = 0;iCnt < iSize; iCnt++)
+    {
+        if(Arr[iCnt] == 11)
+        {
+            return true;  // Bad Programming
+        }
+    }
+    return false;
+}
+int main()
+{
+    int *Brr = NULL;
+    int iLength = 0,iCnt = 0;
+    bool bRet = false;
+
+    printf("Enter Number of elements : \n");
+    scanf("%d",&iLength);
+
+    Brr =(int *)malloc(iLength * sizeof(int));
+
+    printf("Enter the elements : \n");
+
+    for(iCnt = 0;iCnt < iLength; iCnt++)
+    {
+        scanf("%d",&Brr[iCnt]);
+    }
+
+    bRet = Linearsearch(Brr,iLength);
+
+    if(bRet == true)
+    {
+        printf("element is present\n");
+    }
+    else
+    {
+        printf("element is not present\n");
+    }
+
+    free(Brr);
+
+    return 0;
+}
