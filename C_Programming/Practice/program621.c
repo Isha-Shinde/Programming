@@ -1,0 +1,280 @@
+// project
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  Header Files Inclusion
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include<stdio.h>
+#include<stdlib.h>
+#include<unistd.h>
+#include<fcntl.h>
+#include<string.h>
+#include<stdbool.h>
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  User Defined Macros
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////
+   
+#define MAXINODE 10       // maximum number of inodes
+#define MAXFILESIZE 50    // max size of one file(50 bytes)
+#define MAXOPENFILES 10   // open 10 files at a time
+
+#define READ 1
+#define WRITE 2
+#define EXECUTE 4
+
+// lseek positions
+#define START 0
+#define CURRENT 1
+#define END 2
+
+#define EXECUTE_SUCCESS 0
+
+#define REGULARFILE 1
+#define SPECIALFILE 2
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  User Defined Macros for Error handling
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+#define ERR_INVALID_PARAMETER -1
+
+#define ERR_NO_INODES -2
+
+#define ERR_FILE_ALREADY_EXIST -3
+#define ERR_FILE_NOT_EXIST -4
+
+#define ERR_PERMISSION_DENIED -5
+
+#define ERR_INSUFFICIENT_SPACE -6
+
+#define ERR_INSUFFICIENT_DATA -7
+
+#define ERR_MAX_FILES_OPEN -8
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  Structure Name :   BootBlock  
+//  Description    :   It holds the information to 
+//                     boot the operating system
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////4
+
+struct BootBlock
+{
+    char Information[100];
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  Structure Name :   SuperBlock  
+//  Description    :   It holds the information of 
+//                     complete file system
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////4
+
+struct SuperBlock
+{
+    int TotalInodes;    
+    int FreeInodes;     
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  Structure Name :   Inode
+//  Description    :   It holds the information of file
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////4
+
+
+#pragma pack(1)
+struct Inode
+{
+    char FileName[20];
+    int InodeNumber;
+    int FileSize;
+    int ActualFileSize;
+    int FileType;
+    int ReferenceCount;
+    int Permission;
+    char *Buffer;        
+    struct Inode *next;
+};
+
+typedef struct Inode INODE;
+typedef struct Inode* PINODE;
+typedef struct Inode** PPINODE;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  Structure Name :    FileTable
+//  Description :       It holds information of opened
+//                      files
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////4
+
+#pragma pack(1)
+struct FileTable
+{
+    int ReadOffset;
+    int WriteOffset;
+    int Mode;
+    PINODE ptrinode;
+};
+
+typedef struct FileTable FILETABLE;
+typedef struct FileTable* PFILETABLE;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  Structure Name :    UARAE
+//  Description :       It holds information of process
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////4
+
+struct UAREA
+{
+    char ProcessName[20];
+    PFILETABLE UFDT[MAXOPENFILES];
+};
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  Global Variables used in the project
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////4
+
+struct BootBlock bootobj;
+struct SuperBlock superobj;
+struct UAREA uareaobj;
+
+PINODE head = NULL;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//  
+//  Function Name :     InitialiseUAREA
+//  Description :       It is used to initialise UAREA
+//  Author :            Isha Suresh Shinde
+//  Date :              31/07/2026
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////4
+
+void InitialiseUAREA()
+{
+    int i = 0;
+
+    strcpy(uareaobj.ProcessName, "Myexe");   // Stores the process name in UAREA
+
+    for(i = 0; i < MAXOPENFILES; i++)
+    {
+        uareaobj.UFDT[i] = NULL;             // Initially, no file is open, so every UFDT entry is set to NULL
+    }
+
+    printf("Marvellous CVFS : UAREA gets initialised successfully\n");
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//  
+//  Function Name :     InitialiseSuperBlock()
+//  Description :       It is used to initialise super block
+//  Author :            Isha Suresh Shinde
+//  Date :              31/07/2026
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////4
+
+void InitialiseSuperBlock()
+{
+    superobj.TotalInodes = MAXINODE;
+    superobj.FreeInodes = MAXINODE;
+
+    printf("Marvellous CVFS : Super Block gets initalised succesfully\n");
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//  
+//  Function Name :     CreateDILB()
+//  Description :       It is used to create linked list of inodes
+//  Author :            Isha Suresh Shinde
+//  Date :              31/07/2026
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////4
+
+void CreateDILB()
+{
+    PINODE temp = NULL;
+    PINODE newn = NULL;
+
+    int i = 0;
+
+    temp = head;
+
+    for(i = 1; i <= MAXINODE; i++)
+    {
+        newn = (PINODE)malloc(sizeof(INODE));
+
+        newn->InodeNumber = i;          // Assign a unique inode number
+        strcpy(newn->FileName,"\0");    // Initialize the file name as an empty string
+        newn->FileSize = 0;             // Maximum file size is currently 0
+        newn->ActualFileSize = 0;       // No data is stored in the file
+        newn->FileType = 0;             // File is not created yet
+        newn->ReferenceCount = 0;       // File is not opened by any process
+        newn->Permission = 0;           // No read/write/execute permission assigned
+        newn->Buffer = NULL;            // No memory allocated for file data yet
+
+        if(temp == NULL)
+        {
+            head = newn;
+            temp = head;
+        }
+        else
+        {
+            temp->next = newn;           // Link the new inode to the list
+            temp = temp->next;           // Move temp to the new last inode
+        }
+    }
+
+    printf("Marvellous CVFS : DILB gets created succesfully\n");
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//  
+//  Function Name :     StartAuxillaryDataInitialisation()
+//  Description :       It is used to call all such functions
+//                      which are used to initialise auxillary data
+//  Author :            Isha Suresh Shinde
+//  Date :              31/07/2026
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////4
+
+void StartAuxillaryDataInitialisation()
+{
+    strcpy(bootobj.Information,"Booting process of Marvellous CVFS is completed"); //// Stores the boot message in the Boot Block.
+
+    printf("%s\n",bootobj.Information);  // Displays the boot message.
+
+    InitialiseUAREA();                   // Initializes the User Area (UAREA).
+
+    InitialiseSuperBlock();              // Initializes the Super Block.
+
+    CreateDILB();                        // Creates the Disk Inode List Block (DILB).
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//
+//  Entry Point Fuction of the CVFS project
+//
+//////////////////////////////////////////////////////////////////////////////////////////////////4
+
+int main()
+{
+    StartAuxillaryDataInitialisation();
+
+    return 0;
+}
