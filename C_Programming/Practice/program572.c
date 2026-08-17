@@ -1,0 +1,20 @@
+#include<stdio.h>
+#include<fcntl.h>
+
+int main()
+{
+    int fd = 0;
+
+    fd = creat("Marvellous.txt",0777);
+
+    if(fd == -1)
+    {
+        printf("Enable to create file\n");
+    }
+    else
+    {
+        printf("Files gets successfully created\n");
+    }
+
+    return 0;
+}
